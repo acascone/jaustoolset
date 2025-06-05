@@ -68,6 +68,9 @@ void AccessControl_ReceiveFSM::SendAction(std::string arg0, std::string arg1)
 
 void AccessControl_ReceiveFSM::SendAction(std::string arg0, std::string arg1, Receive::Body::ReceiveRec transportData)
 {
+
+	std::cout << "Send action with current state: " << context->getPreviousState()->getName() << std::endl;
+	std::cout << arg0 << "    " << arg1 << std::endl;
 	/// Insert User Code HERE
 	if (arg0 == "RejectControl")
 	{

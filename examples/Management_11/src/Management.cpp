@@ -2,6 +2,7 @@
 
 #include "Management.h"
 #include "JausUtils.h"
+#include "urn_jaus_jss_core_Management_1_1/Messages/MessageSet.h"
 
 using namespace JTS;
 using namespace urn_jaus_jss_core_Transport_1_1;
@@ -77,6 +78,23 @@ void Management::shutdownComponent()
 void Management::processInternalEvent(InternalEvent *ie)
 {
     bool done = false;
+
+	if (ie->getName().compare("Receive") == 0)
+	{
+		Receive* casted_ie = (Receive*) ie;
+		unsigned short id = *((unsigned short*) casted_ie->getBody()->getReceiveRec()->getMessagePayload()->getData());
+		if ( id == urn_jaus_jss_core_Management_1_1::ClearEmergency::ID) printf("Received ClearEmergency\n");
+		else if ( id == urn_jaus_jss_core_Management_1_1::SetEmergency::ID) printf("Received SetEmergency\n");
+		else if ( id == urn_jaus_jss_core_Management_1_1::Reset::ID) printf("Received Reset\n");
+		else if ( id == urn_jaus_jss_core_Management_1_1::Resume::ID) printf("Received Resume\n");
+		else if ( id == urn_jaus_jss_core_Management_1_1::Standby::ID) printf("Received Standby\n");
+		else if ( id == urn_jaus_jss_core_Management_1_1::QueryStatus::ID) printf("Received QueryStatus\n");
+		else if ( id == urn_jaus_jss_core_Management_1_1::RequestControl::ID) printf("Received RequestControl\n");
+		else if ( id == urn_jaus_jss_core_Management_1_1::ReleaseControl::ID) printf("Received ReleaseControl\n");
+		else if ( id == urn_jaus_jss_core_Management_1_1::QueryControl::ID) printf("Received QueryControl\n");
+		else if ( id == urn_jaus_jss_core_Management_1_1::SetAuthority::ID) printf("Received SetAuthority\n");
+		else printf("Received message: 0x%x\n", id);
+	}
 	
 	//
 	// When a component receives an internal event, it passes it
