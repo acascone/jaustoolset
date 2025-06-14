@@ -937,7 +937,7 @@
             <xsl:text>)</xsl:text>
           </font-resize>
         </xsl:if>
-        <xsl:if test="count(jaus:value_set/jaus:value_range) > 1 or
+        <xsl:if test="count(jaus:value_set/jaus:value_range) > 0 or
           count(jaus:value_set/jaus:value_enum) > 0">
           <xsl:apply-templates select="jaus:value_set" mode="cell"/>
         </xsl:if>
@@ -1116,7 +1116,7 @@
          </font-resize>
       </xsl:if>
       <xsl:processing-instruction name="linebreak"/>
-      <xsl:if test="count(jaus:value_set/jaus:value_range) > 1 or
+      <xsl:if test="count(jaus:value_set/jaus:value_range) > 0 or
          count(jaus:value_set/jaus:value_enum) > 0">
         <xsl:apply-templates select="jaus:value_set" mode="cell"/>
       </xsl:if>

@@ -1451,10 +1451,10 @@ public class Transition {
                 messageTransitions.append(System.getProperty("line.separator"));
             } // Handle elements.
             else if (param.getType().contains(".")) {
-                messageTransitions.append("\t\t\t\t\t\t").append(param.getType().replace(".", "::")).
+				messageTransitions.append("\t\t\t\t\t\t").append(param.getType().replace(".", "::")).
                         append(" ").append(param.getValue()).append(" = *(");
                 messageTransitions.append(param.getType().replace(".", "()->get").replaceFirst(getTriggerName(tr, sd)
-                        + "\\(\\)->get", "casted_ie->get").replaceFirst(msg_type.toString() + "\\(\\)->get", msg_value.toString() + ".get").concat("());"));
+                        + "\\(\\)->get", "casted_ie->get").concat("());"));
                 messageTransitions.append(System.getProperty("line.separator"));
 
             } // Handle whole events.

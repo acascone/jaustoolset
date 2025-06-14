@@ -55,7 +55,7 @@ POSSIBILITY OF SUCH DAMAGE.
  */
 
 #include <math.h>
-#include "config.h"
+//#include "config.h"
 #include "jausxml.h"
 #include <epan/packet.h>
 #include <epan/tvbuff.h>
@@ -665,7 +665,7 @@ int dissect_sdp_header(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree)
 			}
 		}
 		/* submit the sequenceNumber parameter to Header Sub tree. */
-		proto_tree_add_item(jaus_header_tree, hf_jaus_sequenceNumber, tvb, offset, 2, LITTLE_ENDIAN);
+		proto_tree_add_item(jaus_header_tree, hf_jaus_sequenceNumber, tvb, offset, 2, ENC_LITTLE_ENDIAN);
 		offset+=2;
 	}
 

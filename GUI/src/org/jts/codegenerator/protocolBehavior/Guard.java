@@ -55,7 +55,7 @@ public class Guard {
 			
 			Guard.fixGuardContext(tr.getGuard());
 			
-			localBuffer.append("[" + tr.getGuard().getCondition() + "]");
+			localBuffer.append("[" + tr.getGuard().getCondition().replace("'", "\"") + "]");
 		}
 		else if(obj instanceof org.jts.jsidl.binding.DefaultTransition)
 		{
@@ -63,7 +63,7 @@ public class Guard {
 			
 			Guard.fixGuardContext(dtr.getGuard());
 			
-			localBuffer.append("[" + dtr.getGuard().getCondition() + "]");
+			localBuffer.append("[" + dtr.getGuard().getCondition().replace("'", "\"") + "]");
 		}
 		
 		return localBuffer;

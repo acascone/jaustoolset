@@ -65,7 +65,7 @@ void Management_ReceiveFSM::setupNotifications()
 
 void Management_ReceiveFSM::DeleteIDAction(Receive::Body::ReceiveRec transportData)
 {
-	/// Insert User Code HERE
+	std::cout << "Releasing ID" << std::endl;
 }
 
 void Management_ReceiveFSM::SendAction(std::string arg0, Receive::Body::ReceiveRec transportData)
@@ -107,17 +107,53 @@ void Management_ReceiveFSM::SendAction(std::string arg0, Receive::Body::ReceiveR
 
 void Management_ReceiveFSM::SendAction(std::string arg0, std::string arg1)
 {
-	/// Insert User Code HERE
+	printf("Got here with %s\n", arg0.c_str());
 }
 
 void Management_ReceiveFSM::SendAction(std::string arg0, std::string arg1, Receive::Body::ReceiveRec transportData)
 {
+	JausAddress* sender = new JausAddress( 
+				transportData.getSourceID()->getSubsystemID(), 
+				transportData.getSourceID()->getNodeID(),
+				transportData.getSourceID()->getComponentID());
+
+	printf("Got here with %s and %s\n", arg0.c_str(), arg1.c_str());
+	std::cout << "Send action with current state: " << context->getPreviousState()->getName() << std::endl;
 	/// Insert User Code HERE
+	if (arg0 == "RejectControl")
+	{
+		std::cout << "Sending RejectControl with argument " << arg1 << std::endl;
+		RejectControl reject_msg;
+		if (arg1 == "CONTROL_RELEASED") reject_msg.getBody()->getRejectControlRec()->setResponseCode(0);
+		if (arg1 == "NOT_AVAILABLE") reject_msg.getBody()->getRejectControlRec()->setResponseCode(1);
+
+		// Now send it to the requesting component
+		JausAddress* sender = new JausAddress( 
+						transportData.getSourceID()->getSubsystemID(), 
+						transportData.getSourceID()->getNodeID(),
+						transportData.getSourceID()->getComponentID());
+	    sendJausMessage( reject_msg, *sender );
+
+	}
+
+	else if (arg0 == "ConfirmControl")
+	{
+		ConfirmControl confirm_msg;
+		unsigned char responseCode = 0;
+		if (arg1 == "CONTROL_ACCEPTED") responseCode = 0;
+		if (arg1 == "NOT_AVAILABLE") responseCode = 1;
+		if (arg1 == "INSUFFICIENT_AUTHORITY") responseCode = 2;
+		confirm_msg.getBody()->getConfirmControlRec()->setResponseCode(responseCode);
+		std::cout << "Sending ConfirmControl with argument " << arg1 << std::endl;
+		
+		// Now send it to the requesting component
+		sendJausMessage( confirm_msg, *sender );
+	}
 }
 
 void Management_ReceiveFSM::StoreIDAction(Receive::Body::ReceiveRec transportData)
 {
-	/// Insert User Code HERE
+	std::cout << "Storing ID" << std::endl;
 }
 
 void Management_ReceiveFSM::initializeAction()
