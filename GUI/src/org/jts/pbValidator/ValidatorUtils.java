@@ -35,6 +35,7 @@ package org.jts.pbValidator;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.regex.Pattern;
+import com.u2d.list.RelationalList;
 
 /**
  *
@@ -1779,6 +1780,29 @@ public class ValidatorUtils
 						getInheritedServiceDefList( genServiceDef, sdefs );
 					}
 				}
+				RelationalList clientOf = serviceDef.getClientOf();
+				java.util.List<Object> clients = clientOf.getItems();
+                
+                if (clients != null) {
+                    for (int ii = 0; ii < clients.size(); ii++) {
+                        com.u2d.generated.ServiceDef cref = (com.u2d.generated.ServiceDef) clients.get(ii);
+							
+						// query the database for the reference
+						String id = cref.getServiceId().stringValue();
+						String version = cref.get_version().toString();
+		
+						com.u2d.generated.ServiceDef genServiceDef =  org.jts.gui.JAXBtoJmatter.ServiceDef.lookupServiceDef( id, version );
+		
+						if( genServiceDef != null )
+						{
+							org.jts.jsidl.binding.ServiceDef sd = org.jts.gui.jmatterToJAXB.ServiceDef.convert( genServiceDef );
+							sdefs.add( sd );
+		
+							// recurse through chain
+							getInheritedServiceDefList( genServiceDef, sdefs );
+						}					
+					}
+				}				
 			}
 			else if( obj instanceof org.jts.jsidl.binding.ServiceDef )
 			{
@@ -1802,7 +1826,32 @@ public class ValidatorUtils
 						getInheritedServiceDefList( sd, sdefs );
 					}
 				}
-			}
+				org.jts.jsidl.binding.References ref = serviceDef.getReferences();
+                List<org.jts.jsidl.binding.ClientOf> clients = null;
+                if (ref != null) {
+                    clients = ref.getClientOf();
+                }
+
+                if (clients != null) {
+                    for (int ii = 0; ii < clients.size(); ii++) {
+                        org.jts.jsidl.binding.ClientOf cref = clients.get(ii);						
+						// query the database for the reference
+						String id = cref.getId();
+						String version = cref.getVersion();
+		
+						com.u2d.generated.ServiceDef genServiceDef =  org.jts.gui.JAXBtoJmatter.ServiceDef.lookupServiceDef( id, version );
+		
+						if( genServiceDef != null )
+						{
+							org.jts.jsidl.binding.ServiceDef sd = org.jts.gui.jmatterToJAXB.ServiceDef.convert( genServiceDef );
+							sdefs.add( sd );
+		
+							// recurse through chain
+							getInheritedServiceDefList( genServiceDef, sdefs );
+						}
+					}
+				}				
+			}			
 		}
 	}
 	
@@ -1851,6 +1900,29 @@ public class ValidatorUtils
 					}
 						
 				}
+				RelationalList clientOf = serviceDef.getClientOf();
+				java.util.List<Object> clients = clientOf.getItems();
+                
+                if (clients != null) {
+                    for (int ii = 0; ii < clients.size(); ii++) {
+                        com.u2d.generated.ServiceDef cref = (com.u2d.generated.ServiceDef) clients.get(ii);
+							
+						// query the database for the reference
+						String id = cref.getServiceId().stringValue();
+						String version = cref.get_version().toString();
+		
+						com.u2d.generated.ServiceDef genServiceDef =  org.jts.gui.JAXBtoJmatter.ServiceDef.lookupServiceDef( id, version );
+		
+						if( genServiceDef != null )
+						{
+							org.jts.jsidl.binding.ServiceDef sd = org.jts.gui.jmatterToJAXB.ServiceDef.convert( genServiceDef );
+							sdefs.add( sd );
+		
+							// recurse through chain
+							getInheritedServiceDefList( genServiceDef, sdefs );
+						}					
+					}
+				}				
 			}
 			else if( obj instanceof org.jts.jsidl.binding.ServiceDef )
 			{
@@ -1888,6 +1960,31 @@ public class ValidatorUtils
 						}
 					}
 				}
+				org.jts.jsidl.binding.References ref = serviceDef.getReferences();
+                List<org.jts.jsidl.binding.ClientOf> clients = null;
+                if (ref != null) {
+                    clients = ref.getClientOf();
+                }
+
+                if (clients != null) {
+                    for (int ii = 0; ii < clients.size(); ii++) {
+                        org.jts.jsidl.binding.ClientOf cref = clients.get(ii);						
+						// query the database for the reference
+						String id = cref.getId();
+						String version = cref.getVersion();
+		
+						com.u2d.generated.ServiceDef genServiceDef =  org.jts.gui.JAXBtoJmatter.ServiceDef.lookupServiceDef( id, version );
+		
+						if( genServiceDef != null )
+						{
+							org.jts.jsidl.binding.ServiceDef sd = org.jts.gui.jmatterToJAXB.ServiceDef.convert( genServiceDef );
+							sdefs.add( sd );
+		
+							// recurse through chain
+							getInheritedServiceDefList( genServiceDef, sdefs );
+						}
+					}
+				}				
 			}
 		}
 	}
