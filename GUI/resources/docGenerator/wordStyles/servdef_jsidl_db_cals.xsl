@@ -98,6 +98,7 @@
         <title>Protocol Behavior</title>
         <para>Add textual protocol behavior information/details here.</para>
         <xsl:call-template name="make-protocol-behavior-diagram"/>
+        <xsl:call-template name="make-entry-exit-table"/>
         <xsl:call-template name="make-state-transition-table"/>
         <xsl:call-template name="make-state-conditions-table"/>
         <xsl:call-template name="make-state-transition-actions-table"/>
@@ -250,6 +251,83 @@
     <xsl:copy-of select="$parent_part"/>
   </xsl:template>
 
+  <xsl:template name="make-entry-exit-table">
+    <!-- counts <entry & exits> that are immediate children of a <state> -->
+    <xsl:variable name="num_entry_exit_actions" 
+      select="count(//jaus:state/jaus:entry | //jaus:default_state/jaus:entry | //jaus:state/jaus:exit | //jaus:default_state/jaus:exit)"/>
+    <xsl:if test="$num_entry_exit_actions != 0">
+      <table>
+        <title><xsl:value-of select="@name"/> Entry / Exit Actions Table</title>
+        <tgroup cols="4" align="left" colsep="1" rowsep="1">
+          <colspec colname="c1" colwidth="8pc"/>
+          <colspec colname="c2" colwidth="7pc"/>
+          <colspec colname="c3" colwidth="11pc"/>
+          <colspec colname="c4" colwidth="17pc"/>
+          <tbody>
+            <row>
+              <entry><emphasis role="bold">State</emphasis></entry>
+              <entry><emphasis role="bold">Type</emphasis></entry>
+              <entry><emphasis role="bold">Interpretation</emphasis></entry>
+              <entry><emphasis role="bold">Actions</emphasis></entry>
+            </row>
+            <xsl:for-each select="//jaus:state/jaus:entry | //jaus:default_state/jaus:entry">
+              <row>
+                <entry>
+                  <!-- outputs dot-delimited full name of state -->
+                  <xsl:call-template name="make-source-state-string"/>
+                </entry>
+                <entry>Entry</entry>
+                <entry><xsl:value-of select="string(./jaus:interpretation)"/></entry>
+                <entry>
+                  <!-- may be zero or more actions in a condition and each 
+                      action may have zero or more arguments. -->
+                  <xsl:for-each select="./jaus:action">
+                    <xsl:value-of select="@name"/>
+                    (
+                    <!-- may be zero or more arguments per action, print out value attrib -->
+                    <xsl:for-each select="./jaus:argument">
+                      <xsl:value-of select="@value"/>
+                      <xsl:if test="position() != last()">,<xsl:processing-instruction name="linebreak"/>
+                      </xsl:if>
+                    </xsl:for-each>
+                    )
+                    <xsl:if test="position() != last()">,<xsl:processing-instruction name="linebreak"/></xsl:if> 
+                  </xsl:for-each>
+                </entry>
+              </row>
+            </xsl:for-each>
+            <xsl:for-each select="//jaus:state/jaus:exit | //jaus:default_state/jaus:exit">
+              <row>
+                <entry>
+                  <!-- outputs dot-delimited full name of state -->
+                  <xsl:call-template name="make-source-state-string"/>
+                </entry>
+                <entry>Exit</entry>
+                <entry><xsl:value-of select="string(./jaus:interpretation)"/></entry>
+                <entry>
+                  <!-- may be zero or more actions in a condition and each 
+                      action may have zero or more arguments. -->
+                  <xsl:for-each select="./jaus:action">
+                    <xsl:value-of select="@name"/>
+                    (
+                    <!-- may be zero or more arguments per action, print out value attrib -->
+                    <xsl:for-each select="./jaus:argument">
+                      <xsl:value-of select="@value"/>
+                      <xsl:if test="position() != last()">,<xsl:processing-instruction name="linebreak"/>
+                      </xsl:if>
+                    </xsl:for-each>
+                    )
+                    <xsl:if test="position() != last()">,<xsl:processing-instruction name="linebreak"/></xsl:if> 
+                  </xsl:for-each>
+                </entry>
+              </row>
+            </xsl:for-each>
+          </tbody>
+        </tgroup>
+      </table>
+    </xsl:if>    
+  </xsl:template>
+
   <xsl:template name="make-state-transition-table">
     <!-- counts <transitions> that are immediate children of a <state> -->
     <xsl:variable name="num_transitions" 
@@ -354,7 +432,11 @@
   <xsl:template name="make-state-transition-actions-table">
     <xsl:variable name="num_actions" 
       select="count(//jaus:state/descendant::jaus:transition/jaus:action
-      | //jaus:default_state/descendant::jaus:transition/jaus:action)"/>
+                  | //jaus:state/descendant::jaus:entry/jaus:action
+                  | //jaus:state/descendant::jaus:exit/jaus:action 
+                  | //jaus:default_state/descendant::jaus:transition/jaus:action
+                  | //jaus:default_state/descendant::jaus:entry/jaus:action
+                  | //jaus:default_state/descendant::jaus:exit/jaus:action)"/>
     <xsl:if test="$num_actions > 0">
       <table>
         <title><xsl:value-of select="@name"/> Service Transition Actions</title>
@@ -368,6 +450,20 @@
             </row>
             <xsl:for-each select="//jaus:state/descendant::jaus:transition/jaus:action
               | //jaus:default_state/descendant::jaus:transition/jaus:action">
+              <row>
+                <entry><xsl:value-of select="@name"/></entry>
+                <entry><xsl:value-of select="@interpretation"/></entry>
+              </row>
+            </xsl:for-each>
+            <xsl:for-each select="//jaus:state/descendant::jaus:entry/jaus:action
+              | //jaus:default_state/descendant::jaus:entry/jaus:action">
+              <row>
+                <entry><xsl:value-of select="@name"/></entry>
+                <entry><xsl:value-of select="@interpretation"/></entry>
+              </row>
+            </xsl:for-each>
+            <xsl:for-each select="//jaus:state/descendant::jaus:exit/jaus:action
+              | //jaus:default_state/descendant::jaus:exit/jaus:action">
               <row>
                 <entry><xsl:value-of select="@name"/></entry>
                 <entry><xsl:value-of select="@interpretation"/></entry>
