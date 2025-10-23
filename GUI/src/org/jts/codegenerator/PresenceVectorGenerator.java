@@ -239,16 +239,14 @@ public class PresenceVectorGenerator
         String variableType = "BitSet";
         String fieldName = Util.upperCaseFirstLetter("presenceVector");
         String variableName = JavaCode.getVariableName(fieldName);
-        String tempVariableName = variableName + "Temp";
+        String tempVariableName = "presenceVectorTemp";
         String tempVariableType = JavaCode.getVariableType(pVector.getFieldTypeUnsigned());
         boolean tempVarSigned = JavaCode.getVariableSign(pVector.getFieldTypeUnsigned());
 
         String className = parentClassName;
 
         code.protectedAttributes.add(JavaCode.createVariableDeclaration("protected " + variableType, fieldName, false));
-        code.protectedAttributes.add(JavaCode.createVariableDeclaration("protected " + tempVariableType, fieldName + "Temp", false));
         code.constructorLines.add(variableName + " = new " + variableType + "();");
-        code.constructorLines.add(tempVariableName + " = 0;");
         JavaCode.generateGetSizeLines(tempVariableType, code.sizeLines, tempVarSigned);
 
         // Add the PresenceVector Encoder Lines
@@ -307,7 +305,7 @@ public class PresenceVectorGenerator
         methodCode.clear();
         methodParam.clear();
 
-        methodCode.add("return " + tempVariableName + ";");
+        methodCode.add("return (" + tempVariableType + ") JausUtils.getPVInt(" + variableName + ");");
         code.methods.addAll(JavaCode.createMethodDefinition("public " + tempVariableType, "get", fieldName, methodParam, methodCode, false));
 
 
@@ -324,8 +322,7 @@ public class PresenceVectorGenerator
          */
         methodCode.add("");
         methodCode.add(variableName + ".set(index);");
-        methodCode.add(tempVariableName + " = (" + tempVariableType + ") JausUtils.getPVInt(" + variableName + ");");
-
+        
         code.methods.addAll(JavaCode.createMethodDefinition("protected void", "set", fieldName, methodParam, methodCode, false));
 
 
