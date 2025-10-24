@@ -19,12 +19,12 @@ if not os.path.isfile('lib/Manifest.txt'):
 if not os.path.isfile('lib/statemap.jar'):
 	Execute( Copy( 'lib/statemap.jar', common_dir + '/libJava/statemap.jar' ))
 if not os.path.exists('lib/framework'):
-	Execute( Copy( 'framework', common_dir + '/libJava/framework/%transport_version%/framework' ))
+	Execute( Copy( 'lib/framework', common_dir + '/libJava/framework/%transport_version%/framework' ))
 
 # Generate the environment
 ###############################################
 env = Environment(ENV=os.environ, tools = ['jar', 'javah', 'default'])
-env.Append( JAVACLASSPATH = ['./lib/statemap.jar'])
+env.Append( JAVACLASSPATH = ['./lib/*.jar'])
 env.Append( CPPPATH = include)
 env.Append( LIBPATH = libpath)
 env.Append( INSTALL_LIB = '#./lib')
