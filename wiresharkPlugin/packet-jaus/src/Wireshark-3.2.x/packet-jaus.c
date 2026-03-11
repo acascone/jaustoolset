@@ -103,6 +103,8 @@ int dissect_message_data(tvbuff_t *tvb, proto_tree *tree, int _offset, message_d
 int get_number_of_bytes(char type);
 int get_data_from_tvb(tvbuff_t *tvb, int offset, char type, int size, guint64 *data);
 double scale_convert(unsigned int scaled_value, int bits, double real_lower, double real_upper, char int_function);
+int get_sdp_id_from_tvb(const tvbuff_t *tvb, int offset, char* jaus_id);
+int get_ra3_id_from_tvb(const tvbuff_t *tvb, int offset, char* jaus_id);
 
 /* Wireshark ID of the JAUS protocol */
 static int proto_jaus = -1;
@@ -253,7 +255,7 @@ void proto_register_jaus(void)
 			NULL, 0x0, "Command", HFILL }
 		},
 		{ &hf_jaus_destination,
-		{ "Destination ID", "jaus.dest", FT_IPv4, BASE_NONE,
+		{ "Destination ID", "jaus.dest", FT_STRING, BASE_NONE,
 			NULL, 0x0, "Destination", HFILL }
 		},
 		{ &hf_jaus_dest_sub,
@@ -273,7 +275,7 @@ void proto_register_jaus(void)
 			NULL, 0x000000FF, "Destination Instance", HFILL }
 		},
 		{ &hf_jaus_source,
-		{ "Source ID", "jaus.source", FT_IPv4, BASE_NONE,
+		{ "Source ID", "jaus.source", FT_STRING, BASE_NONE,
 			NULL, 0x0, "Source", HFILL }
 		},
 		{ &hf_jaus_src_sub,
@@ -592,13 +594,17 @@ int dissect_sdp_header(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree)
 
 		if (tree) {
 			/* add destination to header tree */
-			proto_tree_add_item(jaus_header_tree, hf_jaus_destination, tvb, offset, 4, LITTLE_ENDIAN);
+			char dst_addr[14];
+			get_sdp_id_from_tvb(tvb, offset, dst_addr);
+			proto_tree_add_string(jaus_header_tree, hf_jaus_destination, tvb, offset, 4, dst_addr);
 		}
 		offset+=4;
 
 		if (tree) {
 			/* add source to header tree */
-			proto_tree_add_item(jaus_header_tree, hf_jaus_source, tvb, offset, 4, LITTLE_ENDIAN);
+			char src_addr[14];
+			get_sdp_id_from_tvb(tvb, offset, src_addr);
+			proto_tree_add_string(jaus_header_tree, hf_jaus_source, tvb, offset, 4, src_addr);
 		}
 		offset+=4;
 
@@ -789,7 +795,9 @@ int dissect_RA3_header(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree)
 
 	if (tree) {
 		/* Destination Sub tree of Header. */
-		jaus_sub_item = proto_tree_add_item(jaus_header_tree, hf_jaus_destination, tvb, offset, 4, LITTLE_ENDIAN);
+		char dst_addr[16];
+		get_ra3_id_from_tvb(tvb, offset, dst_addr);
+		jaus_sub_item = proto_tree_add_string(jaus_header_tree, hf_jaus_destination, tvb, offset, 4, dst_addr);
 		jaus_dest_tree = proto_item_add_subtree(jaus_sub_item, ett_jaus_destination);
 		/* Dest IP split apart, added to Destnation */
 		proto_tree_add_item(jaus_dest_tree, hf_jaus_dest_sub, tvb, offset, 4, LITTLE_ENDIAN);
@@ -801,7 +809,9 @@ int dissect_RA3_header(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree)
 
 	if (tree) {
 		/* Source Sub tree of Header */
-		jaus_sub_item = proto_tree_add_item(jaus_header_tree, hf_jaus_source, tvb, offset, 4, LITTLE_ENDIAN);
+		char src_addr[16];
+		get_ra3_id_from_tvb(tvb, offset, src_addr);
+		jaus_sub_item = proto_tree_add_string(jaus_header_tree, hf_jaus_source, tvb, offset, 4, src_addr);
 		jaus_src_tree = proto_item_add_subtree(jaus_sub_item, ett_jaus_source);
 		/* Src IP split apart, added to Source */
 		proto_tree_add_item(jaus_src_tree, hf_jaus_src_sub, tvb, offset, 4, LITTLE_ENDIAN);
@@ -1653,4 +1663,31 @@ double scale_convert(unsigned int scaled_value, int bits, double real_lower, dou
 	else if (int_function == FLOOR)
 		return(floor(real_value));
 	else return(ceil(real_value));
+}
+
+/**
+ * Formats SDP JAUS ID as string for display.
+ *
+ *  Returns output of sprintf.
+ */
+int get_sdp_id_from_tvb(const tvbuff_t *tvb, int offset, char* jaus_id)
+{
+	const int comp = tvb_get_guint8(tvb , offset);
+	const int node = tvb_get_guint8(tvb , offset+1);
+	const int subs = tvb_get_letohs(tvb , offset+2);
+	return sprintf(jaus_id, "%d.%d.%d", subs, node, comp);
+}
+
+/**
+ * Formats RA3 JAUS ID as string for display.
+ *
+ *  Returns output of sprintf.
+ */
+int get_ra3_id_from_tvb(const tvbuff_t *tvb, int offset, char* jaus_id)
+{
+	const int inst = tvb_get_guint8(tvb , offset);
+	const int comp = tvb_get_guint8(tvb , offset+1);
+	const int node = tvb_get_guint8(tvb , offset+2);
+	const int subs = tvb_get_guint8(tvb , offset+3);
+	return sprintf(jaus_id, "%d.%d.%d.%d", subs, node, comp, inst);
 }
