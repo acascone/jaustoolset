@@ -1316,33 +1316,81 @@ int dissect_variable_format_field(tvbuff_t *tvb, proto_tree *tree, variable_form
 	format_enum_t *fe_ptr;
 	count_field_t *cf_ptr;
 
-	guint64 data;
+	guint64 count;
+	int offset;
 	int size, found_fe = 0;
 	int error;
 
+	offset = data_offset;
 	fe_ptr = vff_ptr->format_enum;
 	cf_ptr = vff_ptr->count_field;
 
-	/* Get data field size and data from buffer */
-	size = get_number_of_bytes(cf_ptr->field_type_unsigned);
-	if (size < 0) {print_error(tvb, tree, size); return(size);}
-	error = get_data_from_tvb(tvb, data_offset, cf_ptr->field_type_unsigned, size, &data);
-	if (error < 0) {print_error(tvb, tree, error); return(error);}
-
+	const guint8 field_enum = tvb_get_guint8(tvb, offset);
+	offset += 1;
 
 	/* Find matching format_enum to data(index) pulled from buffer */
+	// TODO field_format seems to not be an ASCII string.
 	while (fe_ptr != NULL) {
-		if (data == fe_ptr->index) {
+		if (field_enum == fe_ptr->index) {
 			found_fe = 1; break;
 		}
 		fe_ptr = fe_ptr->next;
 	}
 
-	/* print with enum field_format name else error? with just the data from buffer */
-	proto_tree_add_uint64_format(tree, hf_jaus_uint64, tvb, data_offset, size, data, "[VFF] %s (%d) %s [index: %ld]",
-		vff_ptr->name, cf_ptr->field_type_unsigned, (found_fe)? fe_ptr->field_format : "" , data);
+	/* Get data field size and data from buffer */
+	size = get_number_of_bytes(cf_ptr->field_type_unsigned);
+	if (size < 0) {print_error(tvb, tree, size); return(size);}
+	error = get_data_from_tvb(tvb, offset, cf_ptr->field_type_unsigned, size, &count);
+	if (error < 0) {print_error(tvb, tree, error); return(error);}
+	offset += size;
 
-	data_offset += size;
+	/* print with enum field_format name else error? with just the data from buffer */
+	const char *count_type = decode_field_type(cf_ptr->field_type_unsigned);
+	proto_item* vff_item = proto_tree_add_uint64_format(tree, hf_jaus_uint64, tvb, offset, count, -1, "[VFF] %s (%s) %s [length: %ld]",
+		vff_ptr->name, count_type, (found_fe)? fe_ptr->field_format : "" , count);
+	proto_tree *vff_tree = proto_item_add_subtree(vff_item, ett_jaus_data);
+
+	if (field_enum == 0)
+	{
+		// "JAUS MESSAGE"
+		message_def_t *m_ptr_sub;
+		bool found_sub_msg = false;
+		unsigned short sub_command = tvb_get_letohs(tvb, offset);
+
+		m_ptr_sub = message_set;
+		while (m_ptr_sub != NULL)
+		{
+			if (m_ptr_sub->message_id == sub_command)
+			{
+				found_sub_msg = true;
+				break;
+			}
+			m_ptr_sub = m_ptr_sub->next;
+		}
+
+		proto_item *sub_item = proto_tree_add_uint_format(
+			vff_tree, hf_jaus_commandCode, tvb, offset, 2, sub_command,
+			"Command Code: %s (0x%04X)", (found_sub_msg) ? m_ptr_sub->name : "NotFoundInXML", sub_command);
+		offset += 2;
+		proto_tree *sub_tree = proto_item_add_subtree(sub_item, ett_jaus_data);
+
+		if (found_sub_msg)
+		{
+			data_offset = dissect_message_data(tvb, sub_tree, offset, m_ptr_sub);
+		}
+	}
+	else if (field_enum == 1)
+	{
+		// "User defined"
+		guint8 *data = ep_tvb_memdup(tvb, offset, (int)count);
+		proto_tree_add_bytes(vff_tree, hf_jaus_data, tvb, offset, ((int)count), data);
+		data_offset = (offset + (int)count);
+	}
+	else
+	{
+		// Undefined field enum
+	}
+
 	return(0);
 }
 
