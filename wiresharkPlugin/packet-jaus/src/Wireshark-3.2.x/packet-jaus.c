@@ -1322,17 +1322,9 @@ int dissect_variable_format_field(tvbuff_t *tvb, proto_tree *tree, variable_form
 
 	/* print with enum field_format name else error? with just the data from buffer */
 	const char *count_type = decode_field_type(cf_ptr->field_type_unsigned);
-	char* format_string;
-	if (found_fe)
-	{
-		format_string = fe_ptr->field_format;
-	}
-	else
-	{
-		static char temp[25];
-		sprintf(temp, "UNKNOWN FORMAT(%u)",field_enum);
-		format_string = temp;
-	}
+	static char unknown_format[20];
+	sprintf(unknown_format, "UNKNOWN FORMAT(%u)",field_enum);
+	const char* format_string = (found_fe) ? fe_ptr->field_format : unknown_format;
 	proto_item* vff_item = proto_tree_add_uint64_format(tree, hf_jaus_uint64, tvb, offset, count, -1, "[VFF] %s (%s) %s [length: %ld]",
 		vff_ptr->name, count_type, format_string, count);
 	proto_tree *vff_tree = proto_item_add_subtree(vff_item, ett_jaus_data);
