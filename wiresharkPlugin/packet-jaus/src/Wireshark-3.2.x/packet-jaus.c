@@ -99,6 +99,7 @@ int dissect_RA3_header(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree);
 int dissect_sdp_header(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree);
 int dissect_message_field(tvbuff_t *tvb, proto_tree *tree, field_t *f_ptr, int _op_count, guint64 presence_vector);
 int dissect_message_data(tvbuff_t *tvb, proto_tree *tree, int _offset, message_def_t *m_ptr);
+void dissect_embedded_message_data(tvbuff_t *tvb, proto_tree *tree, int offset);
 int get_number_of_bytes(char type);
 int get_data_from_tvb(tvbuff_t *tvb, int offset, char type, int size, guint64 *data);
 double scale_convert(unsigned int scaled_value, int bits, double real_lower, double real_upper, char int_function);
@@ -1276,31 +1277,7 @@ int dissect_variable_length_field(tvbuff_t *tvb, proto_tree *tree, variable_leng
 
 	if (strcmp(vlf_ptr->field_format, "JAUS MESSAGE") == 0)
 	{
-		message_def_t *m_ptr_sub;
-		bool found_sub_msg = false;
-		unsigned short sub_command = tvb_get_letohs(tvb, offset);
-
-		m_ptr_sub = message_set;
-		while (m_ptr_sub != NULL)
-		{
-			if (m_ptr_sub->message_id == sub_command)
-			{
-				found_sub_msg = true;
-				break;
-			}
-			m_ptr_sub = m_ptr_sub->next;
-		}
-
-		proto_item *sub_item = proto_tree_add_uint_format(
-			vlf_tree, hf_jaus_commandCode, tvb, offset, 2, sub_command,
-			"Command Code: %s (0x%04X)", (found_sub_msg) ? m_ptr_sub->name : "NotFoundInXML", sub_command);
-		offset += 2;
-		proto_tree *sub_tree = proto_item_add_subtree(sub_item, ett_jaus_data);
-
-		if (found_sub_msg)
-		{
-			data_offset = dissect_message_data(tvb, sub_tree, offset, m_ptr_sub);
-		}
+		dissect_embedded_message_data(tvb, vlf_tree, offset);
 	}
 	else
 	{
@@ -1329,7 +1306,6 @@ int dissect_variable_format_field(tvbuff_t *tvb, proto_tree *tree, variable_form
 	offset += 1;
 
 	/* Find matching format_enum to data(index) pulled from buffer */
-	// TODO field_format seems to not be an ASCII string.
 	while (fe_ptr != NULL) {
 		if (field_enum == fe_ptr->index) {
 			found_fe = 1; break;
@@ -1346,49 +1322,30 @@ int dissect_variable_format_field(tvbuff_t *tvb, proto_tree *tree, variable_form
 
 	/* print with enum field_format name else error? with just the data from buffer */
 	const char *count_type = decode_field_type(cf_ptr->field_type_unsigned);
-	proto_item* vff_item = proto_tree_add_uint64_format(tree, hf_jaus_uint64, tvb, offset, count, -1, "[VFF] %s (%s) %s [length: %ld]",
-		vff_ptr->name, count_type, (found_fe)? fe_ptr->field_format : "" , count);
-	proto_tree *vff_tree = proto_item_add_subtree(vff_item, ett_jaus_data);
-
-	if (field_enum == 0)
+	char* format_string;
+	if (found_fe)
 	{
-		// "JAUS MESSAGE"
-		message_def_t *m_ptr_sub;
-		bool found_sub_msg = false;
-		unsigned short sub_command = tvb_get_letohs(tvb, offset);
-
-		m_ptr_sub = message_set;
-		while (m_ptr_sub != NULL)
-		{
-			if (m_ptr_sub->message_id == sub_command)
-			{
-				found_sub_msg = true;
-				break;
-			}
-			m_ptr_sub = m_ptr_sub->next;
-		}
-
-		proto_item *sub_item = proto_tree_add_uint_format(
-			vff_tree, hf_jaus_commandCode, tvb, offset, 2, sub_command,
-			"Command Code: %s (0x%04X)", (found_sub_msg) ? m_ptr_sub->name : "NotFoundInXML", sub_command);
-		offset += 2;
-		proto_tree *sub_tree = proto_item_add_subtree(sub_item, ett_jaus_data);
-
-		if (found_sub_msg)
-		{
-			data_offset = dissect_message_data(tvb, sub_tree, offset, m_ptr_sub);
-		}
-	}
-	else if (field_enum == 1)
-	{
-		// "User defined"
-		guint8 *data = ep_tvb_memdup(tvb, offset, (int)count);
-		proto_tree_add_bytes(vff_tree, hf_jaus_data, tvb, offset, ((int)count), data);
-		data_offset = (offset + (int)count);
+		format_string = fe_ptr->field_format;
 	}
 	else
 	{
-		// Undefined field enum
+		static char temp[25];
+		sprintf(temp, "UNKNOWN FORMAT(%u)",field_enum);
+		format_string = temp;
+	}
+	proto_item* vff_item = proto_tree_add_uint64_format(tree, hf_jaus_uint64, tvb, offset, count, -1, "[VFF] %s (%s) %s [length: %ld]",
+		vff_ptr->name, count_type, format_string, count);
+	proto_tree *vff_tree = proto_item_add_subtree(vff_item, ett_jaus_data);
+
+	if (strcmp(fe_ptr->field_format, "JAUS MESSAGE") == 0)
+	{
+		dissect_embedded_message_data(tvb, vff_tree, offset);
+	}
+	else
+	{
+		guint8 *data = ep_tvb_memdup(tvb, offset, (int)count);
+		proto_tree_add_bytes(vff_tree, hf_jaus_data, tvb, offset, ((int)count), data);
+		data_offset = (offset + (int)count);
 	}
 
 	return(0);
@@ -1684,6 +1641,35 @@ int dissect_message_data(tvbuff_t *tvb, proto_tree *tree, int offset, message_de
 	}
 
 	return(data_offset);
+}
+
+void dissect_embedded_message_data(tvbuff_t *tvb, proto_tree *tree, int offset)
+{
+	message_def_t *sub_msg_ptr;
+	bool found_sub_msg = false;
+	unsigned short sub_command = tvb_get_letohs(tvb, offset);
+
+	sub_msg_ptr = message_set;
+	while (sub_msg_ptr != NULL)
+	{
+		if (sub_msg_ptr->message_id == sub_command)
+		{
+			found_sub_msg = true;
+			break;
+		}
+		sub_msg_ptr = sub_msg_ptr->next;
+	}
+
+	proto_item *sub_item = proto_tree_add_uint_format(
+		tree, hf_jaus_commandCode, tvb, offset, 2, sub_command,
+		"Command Code: %s (0x%04X)", (found_sub_msg) ? sub_msg_ptr->name : "NotFoundInXML", sub_command);
+	offset += 2;
+	proto_tree *sub_tree = proto_item_add_subtree(sub_item, ett_jaus_data);
+
+	if (found_sub_msg)
+	{
+		data_offset = dissect_message_data(tvb, sub_tree, offset, sub_msg_ptr);
+	}
 }
 
 /**
