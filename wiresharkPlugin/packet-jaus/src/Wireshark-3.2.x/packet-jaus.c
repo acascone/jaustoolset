@@ -521,7 +521,7 @@ int dissect_sdp_header(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree)
 
 	if (tree) {
 		/* Header Sub tree */
-		jaus_sub_item = proto_tree_add_text(jaus_tree, tvb, offset, (!compression)? 14: 3, "Message Header");
+		jaus_sub_item = proto_tree_add_text(jaus_tree, tvb, offset, (!compression)? 12: 3, "Message Header");
 		jaus_header_tree = proto_item_add_subtree(jaus_sub_item, ett_jaus_header);
 
 		/* add message type and hc to header tree */
@@ -689,8 +689,7 @@ int dissect_sdp_header(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree)
 				offset++;
 			}
 		}
-		/* submit the sequenceNumber parameter to Header Sub tree. */
-		proto_tree_add_item(jaus_header_tree, hf_jaus_sequenceNumber, tvb, offset, 2, ENC_LITTLE_ENDIAN);
+		proto_tree_add_item(jaus_tree, hf_jaus_sequenceNumber, tvb, offset, 2, ENC_LITTLE_ENDIAN);
 		offset+=2;
 	}
 
