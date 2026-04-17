@@ -152,6 +152,14 @@ static const value_string version_flag[] = {
 	{ 0, NULL }
 };
 
+static const value_string data_flag_vals[] = {
+	{ 0, "None" },
+	{ 1, "First Msg" },
+	{ 2, "Middle Msg" },
+	{ 3, "Last Msg" },
+	{ 0, NULL }
+};
+
 /* These are the ids of the header fields that may be created */
 /* RA3 header */
 static gint hf_jaus_priority = -1;
@@ -347,7 +355,7 @@ void proto_register_jaus(void)
 		},
 		{ &hf_jaus_data_flag2,
 		{ "Data Flag", "jaus.dataflag", FT_UINT8, BASE_DEC,
-			NULL, DATA_FLAG, "Data Flag", HFILL }
+			VALS(data_flag_vals), DATA_FLAG, "Data Flag", HFILL }
 		},
 
 		{ &hf_jaus_uint64,
@@ -401,7 +409,7 @@ void proto_register_jaus(void)
 
 /**
  * This function is called to register a handoff for our protocol
- * Whenever a packet on the udp port is recieved, wireskark will call dissect_jaus()
+ * Whenever a packet on the udp port is received, wireshark will call dissect_jaus()
  *
  * This may be call more then once by wireshark, preferences updates
  */
@@ -579,6 +587,7 @@ int dissect_sdp_header(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree)
 	if (!compression) {
 
 		properties = tvb_get_guint8(tvb, offset);
+		const guint8 data_flag = ( properties >> 6 ) & 0x3;
 
 		if (tree) {
 			/* add properties to header tree */
@@ -613,6 +622,19 @@ int dissect_sdp_header(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree)
 			if (tree) {
 				jaus_sub_item = proto_tree_add_text(jaus_tree, tvb, offset, bytes, "Payload (%d byte%s)", bytes, plurality(bytes, "", "s"));
 				jaus_payload_tree = proto_item_add_subtree(jaus_sub_item, ett_jaus_data);
+			}
+		}
+
+		// Temp solution since the dissector doesn't currently support reassembling JAUS fragments.
+		if (data_flag != 0)
+		{
+			if (tree) {
+				proto_tree_add_item(jaus_payload_tree, hf_jaus_data, tvb, offset, bytes, FALSE);
+				offset += bytes;
+			}
+
+			if (check_col(pinfo->cinfo, COL_INFO)) {
+				col_append_fstr(pinfo->cinfo, COL_INFO, "Fragmented JAUS Protocol (flag=%s)", val_to_str(data_flag, data_flag_vals, "Unknown (0x%02x)"));
 			}
 		}
 
